@@ -12,8 +12,6 @@
 from enlace import *
 import time
 import numpy as np
-
-
 import os
 import io
 import PIL.Image as Image
@@ -33,6 +31,31 @@ from tkinter.filedialog import askopenfilename
 serialName = "COM1"                  # Windows(variacao de)
 
 
+"""
+Estrutura do Head:
+- 10 bytes 
+
+- Id
+- Tipo da Mensagem: handshake, dados, erro
+- Tamanho do Payload
+- Tamanho da Mensagem 
+"""
+
+"""
+def create_handshake():
+    head = create_head((0).to_bytes(2, 'big'), (0).to_bytes(2, 'big'), (0).to_bytes(2, byteorder='big'), mt_handshake)
+    datagrama = head + eop
+    return datagrama  
+"""
+
+def create_head(id, msg_type, msg_size, payload_size):
+    head = id + msg_type + msg_size + payload_size
+    return head
+
+
+def create_datagram(message):
+    pass
+
 
 def main():
     try:
@@ -45,9 +68,8 @@ def main():
         Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
         filename = askopenfilename() # show an "Open" dialog box and return the path to the selected file
         print(filename)
-
-
         imageR = filename
+
         txBuffer = open(imageR, 'rb').read()
         txLen = len(txBuffer)
         print('txLen: \n' + str(txLen))
