@@ -5,18 +5,19 @@
 #Aplicação
 ####################################################
 
-
-#esta é a camada superior, de aplicação do seu software de comunicação serial UART.
-#para acompanhar a execução e identificar erros, construa prints ao longo do código! 
-
 from enlace import *
 import time
 import numpy as np
 import os
 import io
 import PIL.Image as Image
+from math import ceil
 from tkinter import Tk     # from tkinter import Tk for Python 3.x
 from tkinter.filedialog import askopenfilename
+
+
+from utils import *
+
 
 #  https://stackoverflow.com/questions/3579568/choosing-a-file-in-python-with-simple-dialog
 
@@ -31,30 +32,7 @@ from tkinter.filedialog import askopenfilename
 serialName = "COM1"                  # Windows(variacao de)
 
 
-"""
-Estrutura do Head:
-- 10 bytes 
-
-- Id
-- Tipo da Mensagem: handshake, dados, erro
-- Tamanho do Payload
-- Tamanho da Mensagem 
-"""
-
-"""
-def create_handshake():
-    head = create_head((0).to_bytes(2, 'big'), (0).to_bytes(2, 'big'), (0).to_bytes(2, byteorder='big'), mt_handshake)
-    datagrama = head + eop
-    return datagrama  
-"""
-
-def create_head(id, msg_type, msg_size, payload_size):
-    head = id + msg_type + msg_size + payload_size
-    return head
-
-
-def create_datagram(message):
-    pass
+# eop = (4294967295).to_bytes(4, byteorder='big')
 
 
 def main():
@@ -71,23 +49,54 @@ def main():
         imageR = filename
 
         txBuffer = open(imageR, 'rb').read()
+        print(f'Imagem: {txBuffer}')
+
+
         txLen = len(txBuffer)
         print('txLen: \n' + str(txLen))
 
 
-        # Enviando o head (tamanho do arquivo)
         time_start = time.time()
-        tamanho_bytes = (txLen).to_bytes(3, byteorder='big')
-        print("Tamnho em bytes {}".format(tamanho_bytes))
-        com1.sendData(tamanho_bytes)
-        
 
-        # Enviando o arquivo
-        print("Cliente mandando o tamanho da imagem para o servidor.")
-        com1.sendData(txBuffer)
-        print("Cliente mandando a imagem")
+        print("Enviando Handshake!")
+        handshake = create_handshake()
+        com1.sendData(handshake)
+        print("Handshake Enviado! Comunicação estabelecida")
 
 
+
+        datagrams = create_datagrams(txBuffer)
+        print(f"Todos os {len(datagrams)} datagramas foram criados")
+
+        cont = 1
+        for datagram in datagrams:
+            print("Enviando datagrama: {}".format(cont))
+            com1.sendData(datagram)
+            print("Datagrama {} enviado com sucesso".format(cont))
+            print('-----------------------------------------------')
+
+            response = com1.getData(14)[0]
+            
+            type_of_message = response[8:10]
+            print(f'Resposta do servidor: {type_of_message}')
+
+            if type_of_message == (3).to_bytes(2, byteorder='big'):
+                print('Recebemos do servidor que o primeiro pacote foi enviado com sucesso')
+            
+            elif type_of_message == (4).to_bytes(2, byteorder='big'):
+                user_reponse = input('Um erro ocorreu, deseja tentar novamente?[y/n] ')
+                
+                if user_reponse == 'y':
+                    print('Tentando enviar novamente...')
+                    com1.sendData(datagram)
+                    break
+                else:
+                    print('FALHA AO TENTAR ENVIAR IMAGEM :(')
+                    break
+
+            cont += 1
+
+        """
         resposta, len_resposta = com1.getData(3)
         print("Resposta: {}".format(resposta) )
 
@@ -100,6 +109,7 @@ def main():
 
             print("Tempo gasto: {} segundos".format(transfer_time))
             print("Taxa de Transmissão: {} [bytes/s]".format(taxa_transmissão))
+        """
 
         # Encerra comunicação
         print("----------------------------------------------------")
