@@ -71,9 +71,17 @@ class RX(object):
         while(self.getBufferLen() < size):
             time.sleep(0.05)                 
         return(self.getBuffer(size))
-
-
+        
+    def getOnTime(self, size, max_time):
+        start = time.time()
+        while(self.getBufferLen() < size):
+            counter = time.time()
+            time_wating = counter - start
+            if time_wating > max_time:
+                return False
+            time.sleep(0.05)
+            
+        return(self.getBuffer(size))
+    
     def clearBuffer(self):
         self.buffer = b""
-
-

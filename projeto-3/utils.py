@@ -11,7 +11,8 @@ def create_head(ID, number_of_packages, payload_size, msg_type):
     # ID = Qual Mensagem está sendo enviada 
     # Número de pacotes que serão enviados
     # Tamanho do payload
-    # msg_type -> 1 = (Handshake), 2 = (Envio da Imagem), 3 = (Sucesso), 4 = (Erro)
+    # msg_type -> 1 = (Handshake), 2 = (Envio da Imagem), 3 = (Sucesso), 
+    #             4 = (Erro), 5 = (Tentar novamente), 6 = (Não tentar novamente)
     head = ID +  number_of_packages + payload_size + msg_type
     return head
 

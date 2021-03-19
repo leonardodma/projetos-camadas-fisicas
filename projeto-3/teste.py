@@ -1,5 +1,10 @@
-A = None
+def teste(a, b, c=None):
+    if c == None:
+        return 'C é None meu fi'
+    else:
+        return 'Olha só, c não é mais none'
 
-B = 'x'
 
-print(A + B)
+print(teste(1, 2))
+print('-----------')
+print(teste(1, 2, 3))

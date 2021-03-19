@@ -11,10 +11,9 @@ import numpy as np
 import os
 import io
 import PIL.Image as Image
-from math import ceil
+import sys
 from tkinter import Tk     # from tkinter import Tk for Python 3.x
 from tkinter.filedialog import askopenfilename
-
 
 from utils import *
 
@@ -31,8 +30,21 @@ from utils import *
 #serialName = "/dev/tty.usbmodem1411" # Mac    (variacao de)
 serialName = "COM1"                  # Windows(variacao de)
 
+eop = (4294967295).to_bytes(4, byteorder='big')
+zero_byte = (0).to_bytes(2, 'big')
 
-# eop = (4294967295).to_bytes(4, byteorder='big')
+def client_response(user_response):
+    if user_response == 'y':
+        print('Mensagem de tentar novamente selecionada')
+        msg_type = (5).to_bytes(2, 'big')
+    else:
+        print('Mensagem de parar a comunicação selecionada')
+        msg_type = (6).to_bytes(2, 'big')
+
+    head = create_head((0).to_bytes(4, 'big'), zero_byte, zero_byte, msg_type)
+    datagram = head + eop
+
+    return datagram
 
 
 def main():
@@ -49,24 +61,40 @@ def main():
         imageR = filename
 
         txBuffer = open(imageR, 'rb').read()
-        print(f'Imagem: {txBuffer}')
-
 
         txLen = len(txBuffer)
         print('txLen: \n' + str(txLen))
 
-
-        time_start = time.time()
-
         print("Enviando Handshake!")
         handshake = create_handshake()
         com1.sendData(handshake)
-        print("Handshake Enviado! Comunicação estabelecida")
 
+        
+        handshake_recebido = com1.rx.getOnTime(14, 5)
+        print(f'Handshake recebido foi: {handshake_recebido}')
+        
+        while  handshake_recebido == False:
+            resp = input("Parece que o servidor está inativo. Deseja tentar novamente? [y/n] ")
+            if resp == 'y':
+                print('Tentando mandar novamente...')
+                handshake = create_handshake()
+                com1.sendData(handshake)
+                handshake_recebido = com1.rx.getOnTime(14, 5)
+                print(f'Handshake recebido agora foi: {handshake_recebido}')
+
+
+            else:
+                print('CONEXÃO INTERROMPIDA')
+                com1.disable()
+                sys.exit()
+
+        print("Servidor respondeu o Handshake! Comunicação estabelecida")
 
 
         datagrams = create_datagrams(txBuffer)
         print(f"Todos os {len(datagrams)} datagramas foram criados")
+
+        time_start = time.time()
 
         cont = 1
         for datagram in datagrams:
@@ -75,7 +103,8 @@ def main():
             print("Datagrama {} enviado com sucesso".format(cont))
             print('-----------------------------------------------')
 
-            response = com1.getData(14)[0]
+            response = com1.getData(14)
+            print('Obtive a resposta do servidor')
             
             type_of_message = response[8:10]
             print(f'Resposta do servidor: {type_of_message}')
@@ -83,33 +112,35 @@ def main():
             if type_of_message == (3).to_bytes(2, byteorder='big'):
                 print('Recebemos do servidor que o primeiro pacote foi enviado com sucesso')
             
-            elif type_of_message == (4).to_bytes(2, byteorder='big'):
+            while type_of_message == (4).to_bytes(2, byteorder='big'):
                 user_reponse = input('Um erro ocorreu, deseja tentar novamente?[y/n] ')
-                
+                com1.sendData(client_response(user_reponse))
+                print(f'Foi enviado ao servidor a seguinte mensagem: {client_response(user_reponse)}')
+
                 if user_reponse == 'y':
                     print('Tentando enviar novamente...')
                     com1.sendData(datagram)
-                    break
+                    print('Datagrama enviado novamente!')
+                    server_response = com1.getData(14)
+                    type_of_message = server_response[8:10]
+                    print(f'O servidor respondeu que o tipo da mensagem é: {type_of_message}')
+                    
                 else:
                     print('FALHA AO TENTAR ENVIAR IMAGEM :(')
-                    break
+                    com1.disable()
+                    sys.exit()
 
             cont += 1
 
-        """
-        resposta, len_resposta = com1.getData(3)
-        print("Resposta: {}".format(resposta) )
 
+        time_end = time.time()
+        print("Transferência finalizou com sucesso!\n")
+        transfer_time = time_end - time_start
+        taxa_transmissão = txLen/transfer_time
 
-        if int.from_bytes(resposta, byteorder='big') == txLen:
-            time_end = time.time()
-            print("Transferência finalizou com sucesso!")
-            transfer_time = time_end - time_start
-            taxa_transmissão = txLen/transfer_time
+        print("Tempo gasto: {} segundos".format(transfer_time))
+        print("Taxa de Transmissão: {} [bytes/s]".format(taxa_transmissão))
 
-            print("Tempo gasto: {} segundos".format(transfer_time))
-            print("Taxa de Transmissão: {} [bytes/s]".format(taxa_transmissão))
-        """
 
         # Encerra comunicação
         print("----------------------------------------------------")
