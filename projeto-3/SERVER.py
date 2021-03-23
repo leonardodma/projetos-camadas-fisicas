@@ -106,7 +106,7 @@ def main():
             # -------------------------------------------------------------------------------------------
 
             print('Recebendo payload {}'.format(int_ID))
-            payload = com2.getData(int_payload_size - 1) # TERCEIRO GET REALIAZADO = PAYLOAD
+            payload = com2.getData(int_payload_size) # TERCEIRO GET REALIAZADO = PAYLOAD
             print('Payload {} recebido com sucesso'.format(int_ID))
             print('Recebendo EOP')
             eop = com2.getData(4) # QUARTO GET REALIAZADO = PAYLOAD

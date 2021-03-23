@@ -1,4 +1,3 @@
-from CLIENT import client_response
 from enlace import *
 import time
 import numpy as np
@@ -22,127 +21,86 @@ from datagrama import *
 serialName = "COM2"                  # Windows(variacao de)
 
 
-eop = (4294967295).to_bytes(4, byteorder='big')
-zero_byte = (0).to_bytes(2, 'big')
-
-
-def server_response(response):
-    if response == 'error':
-        msg_type = (4).to_bytes(2, 'big')
-
-    elif response == 'correct':
-        msg_type = (3).to_bytes(2, 'big')
-
-    head = create_head((0).to_bytes(4, 'big'), zero_byte, zero_byte, msg_type)
-    datagram = head + eop
-
-    return datagram
-
-
-def continue_runnig(porta):
-    # Resposta do Cliente para saber se se vai enviar novamente ou não
-    user_response = porta.getData(14)
-    type_of_message = user_response[8:10]
-
-    # Se a resposta for 6 - Interromper 
-    if type_of_message == (6).to_bytes(2, 'big'):
-        print('O CLIENTE INTERROMPEU O ENVIO')
-        porta.disable()
-        sys.exit()
-
-    # Se o tipo da mensagem for 5 - Tentar novamente.
-    elif type_of_message == (5).to_bytes(2, 'big'):
-        time.sleep(5) 
-
-
 def main():
     try:
         com2 = enlace(serialName)
         com2.enable()
 
-        print('A comunicação foi aberta com sucesso!')
-
-        handshake = com2.getData(14) # PRIMEIRO GET REALIAZDO = HANDSHAKE
-        com2.sendData(server_response('correct'))
-
+        print('A comunicação foi aberta com sucesso!\n')
+    
+        # Recebe um handshake e envia a resposta ao cliente.
+        handshake = get_on_five(14, com2)
         print(f"Handshake: {handshake}")
-        print('Handshake recebido com sucesso! \n')
-        print('A comunicação vai começar')
+        
+        type2 = Datagrama(2).createDatagrams()
+
+        if byte_to_int(handshake[0]) == 1:
+            print('Handshake recebido com sucesso! \n')
+            com2.sendData(type2)
+            print('A comunicação vai começar')
+        else:
+            while byte_to_int(handshake[0]) != 1:
+                # tenta receber o handshake novamente
+                handshake = get_on_five(14, com2)
+                com2.sendData(type2)
+
 
         # Iniciando  algumas variáveis
         final_image = bytearray()
         pacote = 1
-        pls = 0
         success = False
 
         while not success:
-            head = com2.getData(10) # SEGUNDO GET REALIAZADO = HEAD
+            head = get_on_five(10, com2) # SEGUNDO GET REALIAZADO = HEAD
 
             # ------------------ Declarando variaveis do HEAD, e seus números inteiros ------------------
-            ID = head[0:4]
-            int_ID = int.from_bytes(ID, byteorder='big')
+            number_of_packages = head[3]
+            print(f'O número total de pacotes será: {byte_to_int(number_of_packages)}\n')
+
+            ID = head[4]
+            int_ID = byte_to_int(ID)
             print(f'O ID recebido foi: {int_ID}\n')
 
-            number_of_packages = head[4:6]
-            int_number_of_packages = int.from_bytes(number_of_packages, byteorder='big')
-            print(f'O número total de pacotes será: {int_number_of_packages}\n')
-
-            payload_size = head[6:8]
-            int_payload_size = int.from_bytes(payload_size, byteorder='big')
-            pls += int_payload_size 
-            print(f'Por enquanto, o tamanho total da imagem é: {pls}\n') 
-
-            type_of_message = head[8:10]
+            payload_size = head[5]
+            int_payload_size = byte_to_int(payload_size)
             # -------------------------------------------------------------------------------------------
 
             print('Recebendo payload {}'.format(int_ID))
             payload = com2.getData(int_payload_size - 1) # TERCEIRO GET REALIAZADO = PAYLOAD
             print('Payload {} recebido com sucesso'.format(int_ID))
+
             print('Recebendo EOP')
-            eop = com2.getData(4) # QUARTO GET REALIAZADO = PAYLOAD
+            eop = get_on_five(4, com2) # QUARTO GET REALIAZADO = PAYLOAD
             print('EOP recebido com sucesso')
 
-            if int_ID != pacote:
+            if int_ID != pacote or len(payload) != int_payload_size or eop != (4294967295).to_bytes(4, byteorder='big'):
                 print('---------------------------------------------------------------------')
                 print('UM ERRO OCORREU NA TRANSMISSÃO DA MENSAGEM :(')
-                print(f'Era para estar recebendo o pacote {pacote}, mas estou recebendo {int_ID}')
-                com2.sendData(server_response('error'))
-                print('Mensagem de erro foi enviada ao cliente!\n')
 
-                time.sleep(5)
+                if int_ID != pacote:
+                    print(f'Era para estar recebendo o pacote {pacote}, mas recebi {int_ID}')
 
-                continue_runnig(com2)
-
-            elif len(payload) != int_payload_size:
-                print('UM ERRO OCORREU NA TRANSMISSÃO DA MENSAGEM :(')
-                print('O Payload informado não foi recebido')
-                com2.sendData(server_response('error'))
-                print('Mensagem de erro enviado ao cliente\n')
-
-                time.sleep(5)
-                
-                continue_runnig(com2)
-            
-            else:
-                if eop != (4294967295).to_bytes(4, byteorder='big'):
-                    print('UM ERRO OCORREU NA TRANSMISSÃO DA MENSAGEM :(')
-                    print('O eop não estava na posição correta, ou seja, não ocorreu a transmissão de todos os bytes')
-                    com2.sendData(server_response('error'))
-                    print('Mensagem de erro enviado ao cliente\n')
-
-                    time.sleep(5)
-
-                    continue_runnig(com2)
+                elif len(payload) != int_payload_size:
+                    print(f'Os tamanhos do payload informado e recebido devirgiram.')
                 
                 else:
-                    print('Por enquanto, tudo ocorreu da meneira correta')
-                    final_image.extend(payload)
-                    # Se nenhum erro ocorrer, enviar que deu certo
-                    com2.sendData(server_response('correct'))
-                    pacote += 1
+                    print('O payload estava não foi recebido corretamente')
 
 
-            if int_ID == int_number_of_packages:
+                com2.sendData(Datagrama(6, pacote).createDatagrams())
+                print('Mensagem de erro foi enviada ao cliente!\n')
+                time.sleep(5)
+
+            
+            else:
+                print('Por enquanto, tudo ocorreu da meneira correta')
+                final_image.extend(payload)
+                # Se nenhum erro ocorrer, enviar que deu certo
+                com2.sendData(Datagrama(4, pacote))
+                pacote += 1
+
+
+            if int_ID == byte_to_int(number_of_packages):
                 print("Último pacote recebido.\n")
                 success = True
 

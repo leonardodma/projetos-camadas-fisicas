@@ -112,13 +112,14 @@ class Datagrama(Head):
                 return datagrams
             
             else:
+                print('Handshake!')
                 return self.createHead() + eop
         
         else:
             if self.messegeType() == 4:
-                self.h7 = byte_to_int(self.id)
+                self.h7 = int_to_byte(self.id)
                 return self.createHead() + eop
             
             elif self.messegeType() == 6:
-                self.h6 = byte_to_int(self.id)
+                self.h6 = int_to_byte(self.id)
                 return self.createHead() + eop
