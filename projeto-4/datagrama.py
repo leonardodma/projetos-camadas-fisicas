@@ -27,8 +27,7 @@ eop = (4294967295).to_bytes(4, byteorder='big')
 
 zero_byte = (0).to_bytes(1, 'big')
 one_byte = (1).to_bytes(1, 'big')
-two_byte = (1).to_bytes(1, 'big')
-
+two_byte = (2).to_bytes(1, 'big')
 client_id = one_byte
 server_id = two_byte
 
@@ -37,7 +36,7 @@ class Head():
     def __init__(self, h0): # São fixos
         
         # Obrigatórios na inicialização
-        self.h0 = h0
+        self.h0 = int_to_byte(h0)
 
         # Dependem do tipo da Mensagem
         self.h3 = zero_byte
@@ -56,7 +55,7 @@ class Head():
         return byte_to_int(self.h0)
     
     def createHead(self):
-        return self.h0 + self.h1 + self.h2 + self.h3, self.h4, self.h5, self.h6, self.h7, self.h8, self.h9
+        return self.h0 + self.h1 + self.h2 + self.h3 + self.h4 + self.h5 + self.h6 + self.h7 + self.h8 + self.h9
         
 
 class Datagrama(Head):
@@ -113,6 +112,7 @@ class Datagrama(Head):
             
             else:
                 print('Handshake!')
+                print(self.createHead())
                 return self.createHead() + eop
         
         else:

@@ -9,6 +9,7 @@ from tkinter import Tk     # from tkinter import Tk for Python 3.x
 from tkinter.filedialog import askopenfilename
 
 from utils import *
+from utils2 import *
 from datagrama import *
 
 #  https://stackoverflow.com/questions/3579568/choosing-a-file-in-python-with-simple-dialog
@@ -46,6 +47,7 @@ def main():
     com1.sendData(handshake)
     print('Handshake enviado com sucesso!')
 
+    time.sleep(15)
     # Tentando receber resposta do servidor, para saber se ele está pronto
     handshake_recebido = get_on_five(14, com1)
     print(f'Handshake recebido foi: {handshake_recebido}\n')
@@ -77,12 +79,12 @@ def main():
         response = get_on_five(14, com1)
         print(f'Mensagem recebida do servidor: {response}')
 
-        if byte_to_int(response[0]) == 4:
+        if response[0] == 4:
             print('Recebemos do servidor que o pacote foi recebido com sucesso')
         
         else:
-            while byte_to_int(response[0]) != 4:
-                print(f'Ocorreu erro no pacote {byte_to_int(response[6])}')
+            while response[0] != 4:
+                print(f'Ocorreu erro no pacote {response[6]}')
                 print('Solicitando reenvio...')
                 com1.sendData(datagram)
                 response = com1.getData(14)

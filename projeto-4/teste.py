@@ -1,4 +1,3 @@
-
 from utils import *
 
 
@@ -15,3 +14,5 @@ print(teste.get_h1())
 
 
 print(isinstance(int_to_byte(1), bytes))
+
+print(int.from_bytes(int_to_byte(2), byteorder='big'))
