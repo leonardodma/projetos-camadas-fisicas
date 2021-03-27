@@ -88,7 +88,7 @@ class Datagrama(Head):
                 for i in range(0, len(self.message), 114):
                     if len(self.message) - i >= 114:
                         payload = self.message[0+i : 114+i]
-                        payload_size_byte = byte_to_int(len(payload))
+                        payload_size_byte = int_to_byte(len(payload))
                         self.h5 = payload_size_byte
                         print(f'O tamanho do Payload do datagrama {ID} é: {len(payload)}')
 
@@ -96,10 +96,10 @@ class Datagrama(Head):
                     else:
                         payload = self.message[i:]
                         print(f'O tamanho do último Payload (Datagrama {ID}) é: {len(payload)}')
-                        payload_size_byte = byte_to_int(len(payload))
+                        payload_size_byte = int_to_byte(len(payload))
                         self.h5 = payload_size_byte
                     
-                    self.h4 = byte_to_int(ID)
+                    self.h4 = int_to_byte(ID)
 
                     datagram = self.createHead() + payload + eop
                     datagrams.append(datagram)
@@ -117,9 +117,14 @@ class Datagrama(Head):
         
         else:
             if self.messegeType() == 4:
+                print(f'Pacote recebido com sucesso: {self.id}')
                 self.h7 = int_to_byte(self.id)
                 return self.createHead() + eop
             
             elif self.messegeType() == 6:
+                print(f'Pacote para reenvio: {self.id}')
                 self.h6 = int_to_byte(self.id)
+                return self.createHead() + eop
+            
+            else:
                 return self.createHead() + eop

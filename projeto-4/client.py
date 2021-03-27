@@ -26,7 +26,6 @@ serialName = "COM1"                  # Windows(variacao de)
 
 
 def main():
-    # try:
     com1 = enlace(serialName)
     com1.enable()
 
@@ -47,19 +46,19 @@ def main():
     com1.sendData(handshake)
     print('Handshake enviado com sucesso!')
 
-    time.sleep(15)
+    time.sleep(5)
     # Tentando receber resposta do servidor, para saber se ele está pronto
-    handshake_recebido = get_on_five(14, com1)
+    handshake_recebido = com1.getData(14)
     print(f'Handshake recebido foi: {handshake_recebido}\n')
     
     # Se não conseguir receber em cinco segundos, tentar novamente
     # Se a mensagem recebida não for do tipo 2, tentar novamente
-    while handshake_recebido[0] != int_to_byte(2):
+    while handshake_recebido[0] != 2:
         print('A mensagem recebida do servidor não foi a esperada...')
         print('Tentando reestabelecer comunicação')
 
         com1.sendData(handshake)
-        handshake_recebido = get_on_five(14, com1)
+        handshake_recebido = com1.getData(14)
         print(f'Handshake recebido agora foi: {handshake_recebido}')
 
     print("Servidor respondeu o Handshake! Comunicação estabelecida")
@@ -87,12 +86,13 @@ def main():
                 print(f'Ocorreu erro no pacote {response[6]}')
                 print('Solicitando reenvio...')
                 com1.sendData(datagram)
-                response = com1.getData(14)
+                response = get_on_twenty(14, com1)
                 print(f"Datagrama {cont} sendo enviado novamente")
 
         cont += 1
 
 
+    # Calculando o tempo de transmissão
     time_end = time.time()
     print("Transferência finalizou com sucesso!\n")
     transfer_time = time_end - time_start
@@ -107,14 +107,6 @@ def main():
     print("Comunicação encerrada")
     print("----------------------------------------------------")
     com1.disable()
-        
-    """
-    except Exception as erro:
-        print("ops! :-\\")
-        print(erro)
-        com1.disable()
-    """
-        
 
     #so roda o main quando for executado do terminal ... se for chamado dentro de outro modulo nao roda
 if __name__ == "__main__":
