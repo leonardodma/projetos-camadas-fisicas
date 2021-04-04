@@ -6,7 +6,6 @@ import io
 import PIL.Image as Image
 import sys
 
-
 from utils import *
 from utils2 import *
 from datagrama import *
@@ -25,28 +24,38 @@ serialName = "COM2"                  # Windows(variacao de)
 
 def main():
     com2 = enlace(serialName)
+    print(com2.fisica.name)
     com2.enable()
 
     print('A comunicação foi aberta com sucesso!\n')
 
     # Recebe um handshake e envia a resposta ao cliente.
-    time.sleep(5)
-    
     handshake = com2.getData(14)
+    write_server_log(create_log('get', handshake[0], len(handshake)))
     print(f"Handshake: {handshake}")
     
     type2 = Datagrama(2).createDatagrams()
     print(f'Enviando mensagem do tipo 2: {type2}')
 
     if handshake[0] == 1:
+        time.sleep(1)
         print('Handshake recebido com sucesso! \n')
+
+        # time.sleep(50) # Para simular erro de time out handshake
+
         com2.sendData(type2)
+        write_server_log(create_log('send', type2[0], len(type2)))
         print('A comunicação vai começar')
     else:
         while handshake[0] != 1:
             # tenta receber o handshake novamente
             handshake = com2.getData(14)
+            write_server_log(create_log('get', handshake[0], len(handshake)))
+
             com2.sendData(type2)
+            write_server_log(create_log('send', type2[0], len(type2)))
+
+            time.sleep(1)
 
 
     # Iniciando  algumas variáveis
@@ -55,15 +64,11 @@ def main():
     success = False
 
     while not success:
-        head = get_on_twenty(10, com2) # SEGUNDO GET REALIAZADO = HEAD
-
+        head = get_on_time(10, com2) # SEGUNDO GET REALIAZADO = HEAD
         # ------------------ Declarando variaveis do HEAD, e seus números inteiros ------------------
         number_of_packages = head[3]
-        print(f'O número total de pacotes será: {number_of_packages}\n')
-
         ID = head[4]
         print(f'O ID recebido foi: {ID}\n')
-
         payload_size = head[5]
 
         # -------------------------------------------------------------------------------------------
@@ -73,12 +78,25 @@ def main():
         print('Payload {} recebido com sucesso'.format(ID))
 
         print('Recebendo EOP...')
-        eop = get_on_five(4, com2) # QUARTO GET REALIAZADO = PAYLOAD
+        eop = com2.getData(4) # QUARTO GET REALIAZADO = PAYLOAD
         print('EOP recebido com sucesso')
+        write_server_log(create_log('get', head[0], len(head) + len(payload) + len(eop)))
 
+        print(f'Passou 20 segundos? {have_passed()}')
 
+        """ # Simular erro de pacote
+        if not have_passed():
+            pacote = 1
+        else:
+            if pacote <= 1:
+                pacote = 2
+            else:
+                pacote = pacote
+            print(f'PACOTE: {pacote}')
+        """
+        
         if ID != pacote or len(payload) != payload_size or eop != (4294967295).to_bytes(4, byteorder='big'):
-            print('---------------------------------------------------------------------')
+            print('----------------------------------------------------------------------------')
             print('UM ERRO OCORREU NA TRANSMISSÃO DA MENSAGEM :(')
 
             if ID != pacote:
@@ -88,10 +106,11 @@ def main():
                 print(f'Os tamanhos do payload informado e recebido devirgiram.')
             
             else:
-                print('O payload estava não foi recebido corretamente')
+                print('O payload não foi recebido corretamente')
 
-
-            com2.sendData(Datagrama(6, ID).createDatagrams())
+            error_massage = Datagrama(6, ID).createDatagrams()
+            com2.sendData(error_massage)
+            write_server_log(create_log('send', 6, len(error_massage), error_massage[6]))
             print('Mensagem de erro foi enviada ao cliente!\n')
             time.sleep(5)
 
@@ -101,10 +120,23 @@ def main():
             print('Por enquanto, tudo ocorreu da meneira correta')
             final_image.extend(payload)
             # Se nenhum erro ocorrer, enviar que deu certo
-            com2.sendData(Datagrama(4, pacote).createDatagrams())
-            print('Mensagem de sucesso enviado ao cliente!')
-            pacote += 1
+            correct_massege = Datagrama(4, pacote).createDatagrams()
 
+            # time.sleep(50) # Para simular erro de time out
+
+            # """ Para simular erro de retirada de fios
+            while not have_passed():
+                time.sleep(1)
+            else:
+                com2.sendData(correct_massege)
+            # """
+
+            # com2.sendData(correct_massege)
+
+            write_server_log(create_log('send', correct_massege[0], len(correct_massege)))
+            print('Mensagem de sucesso enviado ao cliente!')
+
+            pacote += 1
 
         if ID == number_of_packages:
             print("Último pacote recebido.\n")

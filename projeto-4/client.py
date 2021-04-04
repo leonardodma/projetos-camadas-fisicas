@@ -27,6 +27,7 @@ serialName = "COM1"                  # Windows(variacao de)
 
 def main():
     com1 = enlace(serialName)
+    print(com1.fisica.name)
     com1.enable()
 
     print('A comunicação do cliente foi aberta com sucesso!')
@@ -44,11 +45,12 @@ def main():
     print("Enviando Handshake!...")
     handshake = Datagrama(1, txBuffer).createDatagrams()
     com1.sendData(handshake)
+    write_client_log(create_log('send', 1, len(handshake)))
     print('Handshake enviado com sucesso!')
 
-    time.sleep(5)
     # Tentando receber resposta do servidor, para saber se ele está pronto
-    handshake_recebido = com1.getData(14)
+    handshake_recebido = get_on_time(14, com1)
+    write_client_log(create_log('get', handshake_recebido[0], len(handshake_recebido)))
     print(f'Handshake recebido foi: {handshake_recebido}\n')
     
     # Se não conseguir receber em cinco segundos, tentar novamente
@@ -56,9 +58,11 @@ def main():
     while handshake_recebido[0] != 2:
         print('A mensagem recebida do servidor não foi a esperada...')
         print('Tentando reestabelecer comunicação')
-
         com1.sendData(handshake)
-        handshake_recebido = com1.getData(14)
+        write_client_log(create_log('send', 1, len(handshake)))
+
+        handshake_recebido = get_on_time(14, com1)
+        write_client_log(create_log('get', handshake_recebido[0], len(handshake_recebido)))
         print(f'Handshake recebido agora foi: {handshake_recebido}')
 
     print("Servidor respondeu o Handshake! Comunicação estabelecida")
@@ -72,22 +76,30 @@ def main():
     for datagram in datagrams:
         print(f"Enviando datagrama: {cont}")
         com1.sendData(datagram)
+        write_client_log(create_log('send', 3, len(datagram), datagram[5], datagram[3]))
         print(f"Datagrama {cont} enviado com sucesso")
         print('-----------------------------------------------')
 
-        response = get_on_five(14, com1)
+        response = get_on_time(14, com1)
         print(f'Mensagem recebida do servidor: {response}')
 
         if response[0] == 4:
+            write_client_log(create_log('get', response[0], len(response)))
             print('Recebemos do servidor que o pacote foi recebido com sucesso')
         
         else:
             while response[0] != 4:
+                write_client_log(create_log('get', response[0], len(response), datagram[6]))
                 print(f'Ocorreu erro no pacote {response[6]}')
+                
                 print('Solicitando reenvio...')
+
                 com1.sendData(datagram)
-                response = get_on_twenty(14, com1)
+                write_client_log(create_log('send', 3, len(datagram), datagram[5], datagram[3]))
                 print(f"Datagrama {cont} sendo enviado novamente")
+                print('-----------------------------------------------')
+                response = get_on_time(14, com1)
+                print(f'Mensagem recebida do servidor: {response}')
 
         cont += 1
 
@@ -101,13 +113,12 @@ def main():
     print("Tempo gasto: {} segundos".format(transfer_time))
     print("Taxa de Transmissão: {} [bytes/s]".format(taxa_transmissão))
 
-
     # Encerra comunicação
     print("----------------------------------------------------")
     print("Comunicação encerrada")
     print("----------------------------------------------------")
     com1.disable()
 
-    #so roda o main quando for executado do terminal ... se for chamado dentro de outro modulo nao roda
+# Só roda o main quando for executado do terminal... se for chamado dentro de outro modulo nao roda
 if __name__ == "__main__":
     main()
