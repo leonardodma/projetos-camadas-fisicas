@@ -49,7 +49,7 @@ def main():
     print('Handshake enviado com sucesso!')
 
     # Tentando receber resposta do servidor, para saber se ele está pronto
-    handshake_recebido = get_on_time(14, com1)
+    handshake_recebido = get_handshake(14, com1)
     write_client_log(create_log('get', handshake_recebido[0], len(handshake_recebido)))
     print(f'Handshake recebido foi: {handshake_recebido}\n')
     
@@ -61,7 +61,7 @@ def main():
         com1.sendData(handshake)
         write_client_log(create_log('send', 1, len(handshake)))
 
-        handshake_recebido = get_on_time(14, com1)
+        handshake_recebido = get_handshake(14, com1)
         write_client_log(create_log('get', handshake_recebido[0], len(handshake_recebido)))
         print(f'Handshake recebido agora foi: {handshake_recebido}')
 

@@ -31,6 +31,7 @@ def main():
 
     # Recebe um handshake e envia a resposta ao cliente.
     handshake = com2.getData(14)
+
     write_server_log(create_log('get', handshake[0], len(handshake)))
     print(f"Handshake: {handshake}")
     
@@ -41,7 +42,7 @@ def main():
         time.sleep(1)
         print('Handshake recebido com sucesso! \n')
 
-        # time.sleep(50) # Para simular erro de time out handshake
+        time.sleep(50) # Para simular erro de time out handshake
 
         com2.sendData(type2)
         write_server_log(create_log('send', type2[0], len(type2)))
@@ -82,9 +83,11 @@ def main():
         print('EOP recebido com sucesso')
         write_server_log(create_log('get', head[0], len(head) + len(payload) + len(eop)))
 
-        print(f'Passou 20 segundos? {have_passed()}')
+        
 
         """ # Simular erro de pacote
+
+        print(f'Passou 20 segundos? {have_passed()}')
         if not have_passed():
             pacote = 1
         else:
@@ -124,14 +127,14 @@ def main():
 
             # time.sleep(50) # Para simular erro de time out
 
-            # """ Para simular erro de retirada de fios
+            """ Para simular erro de retirada de fios
             while not have_passed():
                 time.sleep(1)
             else:
                 com2.sendData(correct_massege)
-            # """
+            """
 
-            # com2.sendData(correct_massege)
+            com2.sendData(correct_massege)
 
             write_server_log(create_log('send', correct_massege[0], len(correct_massege)))
             print('Mensagem de sucesso enviado ao cliente!')
