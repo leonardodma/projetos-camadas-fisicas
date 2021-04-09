@@ -5,11 +5,11 @@ import os
 import io
 import PIL.Image as Image
 import sys
-
+from crcmod import *
 from utils import *
 from utils2 import *
 from datagrama import *
-
+crc16 = mkCrcFun(0x11021, initCrc=0, xorOut=0xFFFFFFFF)
 
 # voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
 #   para saber a sua porta, execute no terminal :
@@ -71,12 +71,14 @@ def main():
         ID = head[4]
         print(f'O ID recebido foi: {ID}\n')
         payload_size = head[5]
+        crc_client = head[8:10]
 
         # -------------------------------------------------------------------------------------------
 
         print('Recebendo payload {}...'.format(ID))
         payload = com2.getData(payload_size) # TERCEIRO GET REALIAZADO = PAYLOAD
         print('Payload {} recebido com sucesso'.format(ID))
+        crc_server = crc16(payload).to_bytes(2, "big")
 
         print('Recebendo EOP...')
         eop = com2.getData(4) # QUARTO GET REALIAZADO = PAYLOAD
@@ -84,7 +86,6 @@ def main():
         write_server_log(create_log('get', head[0], len(head) + len(payload) + len(eop)))
 
         
-
         """ # Simular erro de pacote
 
         print(f'Passou 20 segundos? {have_passed()}')
@@ -98,7 +99,7 @@ def main():
             print(f'PACOTE: {pacote}')
         """
         
-        if ID != pacote or len(payload) != payload_size or eop != (4294967295).to_bytes(4, byteorder='big'):
+        if ID != pacote or len(payload) != payload_size or eop != (4294967295).to_bytes(4, byteorder='big') or crc_client!= crc_server:
             print('----------------------------------------------------------------------------')
             print('UM ERRO OCORREU NA TRANSMISSÃO DA MENSAGEM :(')
 
@@ -107,6 +108,9 @@ def main():
 
             elif len(payload) != payload_size:
                 print(f'Os tamanhos do payload informado e recebido devirgiram.')
+            
+            elif crc_client!= crc_server:
+                print("Os CRCs não bateram... Algum bit foi perdido!")
             
             else:
                 print('O payload não foi recebido corretamente')
