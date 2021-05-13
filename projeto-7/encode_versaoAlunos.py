@@ -1,9 +1,7 @@
 #importe as bibliotecas
-from numpy.lib.shape_base import column_stack
 from suaBibSignal import *
 import numpy as np
 import sounddevice as sd
-import matplotlib.pyplot as plt
 import pandas as pd
 from suaBibSignal import *
 import sys
@@ -54,8 +52,8 @@ def main():
     print(f'Freqências retornadas: {freq1} e {freq2}')
     
 
-    x1, s1 = bib_signal.generateSin(freq1, A, T, fs)
-    x2, s2 = bib_signal.generateSin(freq2, A, T, fs)
+    s1 = bib_signal.generateSin(freq1, A, T, fs)[1]
+    s2 = bib_signal.generateSin(freq2, A, T, fs)[1]
     s3 = s1 + s2
 
     print(s3)

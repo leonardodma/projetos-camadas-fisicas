@@ -30,7 +30,10 @@ def getKey(freq_menor, freq_maior):
     freqs_maiores = tabela_teclado.columns
     maior = min(freqs_maiores, key=lambda x:abs(x-freq_maior))
 
-    return int(tabela_teclado.loc[[menor]][maior].values[0])
+    try:
+        return int(tabela_teclado.loc[[menor]][maior].values[0])
+    except:
+        return tabela_teclado.loc[[menor]][maior].values[0]
 
 
 def main():
@@ -40,6 +43,7 @@ def main():
     sd.default.samplerate = fs
     sd.default.channels = 1 #Tipicamente são 2. Placas com dois canais. Se ocorrer problemas pode tentar com1.
 
+    print("Clique em alguma tecla para o som ser captado\n")
 
     record_to_file('beep.wav')
     # https://stackoverflow.com/questions/16778878/python-write-a-wav-file-into-numpy-float-array
@@ -50,7 +54,7 @@ def main():
     # myrecording = sd.playrec(sound_array, fs)
     
     T = len(myrecording)/fs
-    print(f"O som possui {len(myrecording)} amostras e possui {T} segundos")
+    print(f"O som possui {len(myrecording)} amostras e possui {T} segundos\n")
     
     bib_signal.plotRecieved(myrecording, T, fs)
     bib_signal.plotFFT(sound_array, fs)
