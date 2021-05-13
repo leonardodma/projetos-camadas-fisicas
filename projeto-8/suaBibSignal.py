@@ -26,11 +26,16 @@ class signalMeu:
         yf = fft(signal*W)
         return(xf, np.abs(yf[0:N//2]))
 
-    def plotFFT(self, signal, fs):
+    def plotFFT(self, signal, fs, titulo=None):
         x,y = self.calcFFT(signal, fs)
         plt.figure()
         plt.plot(x, np.abs(y))
         plt.title('Fourier')
+        if titulo == None:
+            plt.title("Senoide")
+        else:
+            plt.title(titulo)
+
         plt.xlabel("frenquência (Hz)")
         plt.ylabel("Amplitude(f)")
         plt.show()
